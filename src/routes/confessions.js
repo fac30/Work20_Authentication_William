@@ -2,6 +2,7 @@ const {
   listConfessions,
   createConfession,
 } = require("../model/confessions.js");
+const { getSession } = require("../model/session.js");
 const { Layout } = require("../templates.js");
 
 function get(req, res) {
@@ -14,6 +15,13 @@ function get(req, res) {
    * [4] Get the page owner from the URL params
    * [5] If the logged in user is not the page owner send a 401 response
    */
+  const sid = req.signedCookies.sid
+  const session = getSession(sid);
+  const userId = session && session.user_id;
+  const owner = Number(req.params.user_id);
+  if( userId !== owner){
+    res.status(401).send("Wrong user permissions")
+  }
   const confessions = listConfessions(req.params.user_id);
   const title = "Your secrets";
   const content = /*html*/ `
@@ -51,7 +59,13 @@ function post(req, res) {
    * [4] Use the user ID to create the confession in the DB
    * [5] Redirect back to the logged in user's confession page
    */
-  const current_user = Number(req.params.user_id);
+  const sid = req.signedCookies.sid;
+  const session = getSession(sid);
+  const current_user = session && session.user_id;
+  if(!req.body.content || !current_user){
+    return res.status(401).send("Confession failed")
+  }
+  //const current_user = Number(req.params.user_id);
   createConfession(req.body.content, current_user);
   res.redirect(`/confessions/${current_user}`);
 }

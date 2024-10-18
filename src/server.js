@@ -5,11 +5,28 @@ const signup = require("./routes/sign-up.js");
 const login = require("./routes/log-in.js");
 const logout = require("./routes/log-out.js");
 const confessions = require("./routes/confessions.js");
+const { getSession, removeSession } = require("./model/session.js");
 
 const body = express.urlencoded({ extended: false });
 const cookies = cookieParser(process.env.COOKIE_SECRET);
 
 const server = express();
+
+const sessions = (req,res,next)=>{
+  const sid = req.signedCookies.sid
+  const session = getSession(sid)
+  if(!session) {
+    res.status(401).send("<h1>session does not exist</h1>")
+  }
+  if(new Date(session.expires_at) < new Date()){
+    removeSession.apply(sid)
+    res.clearCookie("sid");
+  } else {
+    req.session = session
+  }
+  
+  next();
+}
 
 server.use((req, res, next) => {
   const time = new Date().toLocaleTimeString("en-GB");
